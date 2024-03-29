@@ -1,0 +1,33 @@
+version: '3.3'
+services:
+  web:
+    build: .
+    user: adminuser
+    command: gunicorn --bind 0.0.0.0:4084 --timeout 28800 adminbi.wsgi:application
+    volumes:
+      - .:/code
+      - static_volume:/code/static
+    ports:
+      - "4085:4084"
+    environment:
+      - DJANGO_SETTINGS_MODULE
+      - DB_HOST
+    depends_on:
+      - redis
+
+  rqworker:
+    build: .
+    command: python manage.py rqworker default
+    volumes:
+      - .:/code
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:alpine3.16
+    ports:
+      - "6379:6379"
+
+volumes:
+  static_volume:

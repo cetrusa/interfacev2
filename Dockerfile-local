@@ -1,0 +1,25 @@
+# Usamos la imagen oficial de Python 3.12 como imagen base
+FROM python:3.12
+
+# Crea un usuario y un grupo para ejecutar la aplicación
+RUN groupadd -r interfacegroup && useradd -r -g interfacegroup adminuser
+
+# Establecemos /code como el directorio de trabajo dentro del contenedor
+WORKDIR /code
+
+# Configuramos variables de entorno
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Copiamos requirements.txt a /code en el contenedor
+COPY ./requirements.txt .
+
+# Instalamos las dependencias de Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Ajustamos la zona horaria del contenedor
+RUN ln -sf /usr/share/zoneinfo/America/Bogota /etc/localtime
+
+# Cambiar al usuario no root
+USER adminuser

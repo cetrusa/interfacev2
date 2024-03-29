@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Login
+{% endblock title %}
+
+{% block content %}
+<div class="container vh-100">
+    <div class="row align-items-center h-100">
+        <div class="col-md-6">
+            <img src="{% static 'images/imagen-login.png' %}" class="img-fluid" style="max-width: 100%; height: auto;"
+                alt="Logo-DataZenith">
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-lg p-3 mb-5 bg-white rounded">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{% static 'images/Logo-DataZenith.png' %}" class="brand_logo img-thumbnail"
+                            style="max-width: 200px; height: auto;" alt="Logo">
+                        <h3>Interface</h3>
+                    </div>
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label"><i class="fa fa-user"></i>
+                                Usuario</label>
+                            <input type="text" class="form-control" id="{{ form.username.id_for_label }}"
+                                name="{{ form.username.html_name }}" value="{{ form.username.value|default:'' }}"
+                                required>
+                        </div>
+                        {% for error in form.username.errors %}
+                        <div class="alert alert-danger">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                        <div class="mb-3">
+                            <label for="{{ form.password.id_for_label }}" class="form-label"><i class="fa fa-lock"></i>
+                                Contraseña</label>
+                            <input type="password" class="form-control" id="{{ form.password.id_for_label }}"
+                                name="{{ form.password.html_name }}" required>
+                        </div>
+                        {% for error in form.password.errors %}
+                        <div class="alert alert-danger">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">Recuérdame</label>
+                        </div>
+                        <div>
+                            {{ form.captcha }}
+                        </div>
+                        <div class="mb-3">
+                            <a href="{% url 'users_app:password_reset' %}">¿Olvidaste tu contraseña?</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <a href="{% url 'users_app:user-register' %}" class="btn btn-secondary">Registrarse</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock content %}

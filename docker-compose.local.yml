@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    user: adminuser
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+      - static_volume:/code/static
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE
+      - DB_HOST
+    depends_on:
+      - redis
+
+  rqworker:
+    build: .
+    user: adminuser
+    command: python manage.py rqworker default
+    volumes:
+      - .:/code
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  static_volume:

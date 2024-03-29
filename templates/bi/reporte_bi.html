@@ -1,0 +1,37 @@
+{% extends 'black.html' %}
+{% load static %}
+
+{% block title %}
+Reporte de Bi
+{% endblock title %}
+
+{% block window %}
+
+<div class="embed-responsive embed-responsive-21by9">
+  <iframe class="embed-responsive-item" src="{{url_powerbi}}?embed=true&chromeless=true"
+    title="{{StaticPage.nmEmpresa}}" allowfullscreen="true" id="powerbi-iframe"></iframe>
+</div>
+{% endblock window %}
+
+{% block script %}
+<script>
+  function handleServerResponse(status, responseText) {
+    if (status === 200) {
+      // Parsea la respuesta JSON
+      var jsonResponse = JSON.parse(responseText);
+
+      // Obtiene la URL de la clave 'url_powerbi'
+      var powerbiUrl = jsonResponse.url_powerbi;
+      console.log(this.status, powerbiUrl);
+
+      // Obtiene el elemento iframe
+      var powerbi_iframe = document.getElementById("powerbi-iframe");
+
+      // Establece la URL recibida como el atributo src del iframe
+      powerbi_iframe.src = powerbiUrl;
+    } else {
+      console.error("Error en la solicitud:", responseText);
+    }
+  }
+</script>
+{% endblock script %}

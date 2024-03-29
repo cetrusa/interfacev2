@@ -1,0 +1,174 @@
+2024-03-22 13:53:35,909 Iniciando Proceso
+2024-03-22 13:53:36,040 Inciando Proceso
+2024-03-22 13:53:38,758 Configurando para la base de datos: buenaventura
+2024-03-22 13:53:43,623 Se va a procesar ventas_bi
+2024-03-22 13:53:58,453 Datos borrados correctamente. Filas afectadas: 23478 DELETE
+FROM cuboventas
+WHERE dtContabilizacion BETWEEN :fi AND :ff;
+2024-03-22 13:54:08,339 los datos se han insertado correctamente
+2024-03-22 13:54:08,409 Proceso completado para cuboventas.
+2024-03-22 13:54:08,451 La información se generó con éxito de ventas_bi
+2024-03-22 13:54:08,505 Se va a procesar faltantes_bi
+2024-03-22 13:54:08,989 Datos borrados correctamente. Filas afectadas: 434 DELETE
+FROM faltantes
+WHERE dtContabilizacion BETWEEN :fi AND :ff;
+2024-03-22 13:54:09,173 los datos se han insertado correctamente
+2024-03-22 13:54:09,240 Proceso completado para faltantes.
+2024-03-22 13:54:09,240 La información se generó con éxito de faltantes_bi
+2024-03-22 13:54:09,288 Se va a procesar movimientos_bi
+2024-03-22 13:54:10,004 Datos borrados correctamente. Filas afectadas: 803 DELETE FROM movimientos WHERE dtContabilizacion BETWEEN :fi AND :ff;
+2024-03-22 13:54:10,219 los datos se han insertado correctamente
+2024-03-22 13:54:10,288 Proceso completado para movimientos.
+2024-03-22 13:54:10,289 La información se generó con éxito de movimientos_bi
+2024-03-22 13:54:10,337 Se va a procesar planilla_bi
+2024-03-22 13:54:10,646 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE tempplanilla;
+2024-03-22 13:54:10,807 los datos se han insertado correctamente
+2024-03-22 13:54:10,883 Proceso completado para tempplanilla.
+2024-03-22 13:54:10,883 La información se generó con éxito de planilla_bi
+2024-03-22 13:54:10,964 Se va a procesar planillas_bi
+2024-03-22 13:54:12,323 Datos borrados correctamente. Filas afectadas: 483 DELETE
+FROM planillas
+WHERE fecha_caja BETWEEN :fi AND :ff;
+2024-03-22 13:54:12,533 los datos se han insertado correctamente
+2024-03-22 13:54:12,603 Proceso completado para planillas.
+2024-03-22 13:54:12,603 La información se generó con éxito de planillas_bi
+2024-03-22 13:54:12,654 Se va a procesar presupuesto_bi
+2024-03-22 13:54:12,792 Proceso completado para presupuesto.
+2024-03-22 13:54:12,792 La información se generó con éxito de presupuesto_bi
+2024-03-22 13:54:12,850 Se va a procesar productos_bi
+2024-03-22 13:54:13,393 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE productos;
+2024-03-22 13:54:13,677 los datos se han insertado correctamente
+2024-03-22 13:54:13,744 Proceso completado para productos.
+2024-03-22 13:54:13,744 La información se generó con éxito de productos_bi
+2024-03-22 13:54:13,806 Se va a procesar recaudos_bi
+2024-03-22 13:54:13,953 Proceso completado para recaudos.
+2024-03-22 13:54:13,953 La información se generó con éxito de recaudos_bi
+2024-03-22 13:54:14,006 Se va a procesar rutas_bi
+2024-03-22 13:54:14,338 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE rutas;
+2024-03-22 13:54:14,585 los datos se han insertado correctamente
+2024-03-22 13:54:14,657 Proceso completado para rutas.
+2024-03-22 13:54:14,658 La información se generó con éxito de rutas_bi
+2024-03-22 13:54:14,705 Se va a procesar clientes_bi
+2024-03-22 13:54:15,508 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE clientes;
+2024-03-22 13:54:16,182 los datos se han insertado correctamente
+2024-03-22 13:54:16,252 Proceso completado para clientes.
+2024-03-22 13:54:16,253 La información se generó con éxito de clientes_bi
+2024-03-22 13:54:16,302 Se va a procesar zona_bi
+2024-03-22 13:54:16,533 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE zona;
+2024-03-22 13:54:16,688 los datos se han insertado correctamente
+2024-03-22 13:54:16,759 Proceso completado para zona.
+2024-03-22 13:54:16,759 La información se generó con éxito de zona_bi
+2024-03-22 13:54:16,810 Se va a procesar borra_impactos_bi
+2024-03-22 13:54:16,952 Datos borrados correctamente. Filas afectadas: 14214 DELETE
+FROM impactos
+WHERE periodo = DATE_FORMAT(:ff, '%Y%m');
+2024-03-22 13:54:16,974 Proceso completado para impactos.
+2024-03-22 13:54:16,974 La información se generó con éxito de borra_impactos_bi
+2024-03-22 13:54:17,020 Se va a procesar impactos_bi
+2024-03-22 13:54:17,435 Datos borrados correctamente. Filas afectadas: 14214 INSERT INTO impactos SELECT  DISTINCT ds
+       ,DATE_FORMAT(dtContabilizacion,'%Y%m') periodo
+       ,nbZona
+       ,idPuntoVenta
+       ,nbProducto
+       ,SUM(cantAsignada) cantAsignada
+			 ,CURRENT_TIMESTAMP() updatetime
+FROM cuboventas
+WHERE dtContabilizacion BETWEEN ADDDATE( last_day( SUBDATE( :fi, INTERVAL 1 MONTH ) ), INTERVAL 1 DAY ) AND ADDDATE( last_day( SUBDATE( :ff, INTERVAL 0 MONTH ) ), INTERVAL 0 DAY )
+GROUP BY  ds
+         ,DATE_FORMAT(dtContabilizacion,'%Y%m')
+         ,nbZona
+         ,idPuntoVenta
+         ,nbProducto
+HAVING cantAsignada > 0;
+2024-03-22 13:54:17,460 Proceso completado para impactos.
+2024-03-22 13:54:17,460 La información se generó con éxito de impactos_bi
+2024-03-22 13:54:17,509 Se va a procesar update_cubo_bi
+2024-03-22 13:54:18,066 Datos borrados correctamente. Filas afectadas: 18958 UPDATE cuboventas c
+INNER JOIN tempplanilla t
+ON t.nbplanilla = c.nbPlanilla
+
+SET c.estadoPlanilla = 'C', c.dtCierrePlanilla = t.dtUsrAuditoria;
+2024-03-22 13:54:18,091 Proceso completado para cuboventas.
+2024-03-22 13:54:18,091 La información se generó con éxito de update_cubo_bi
+2024-03-22 13:54:18,163 Se va a procesar cambios_bi
+2024-03-22 13:54:19,112 Datos borrados correctamente. Filas afectadas: 776 DELETE
+FROM cambios
+WHERE dtContabilizacion BETWEEN :fi AND :ff;
+2024-03-22 13:54:19,554 los datos se han insertado correctamente
+2024-03-22 13:54:19,868 Proceso completado para cambios.
+2024-03-22 13:54:19,869 La información se generó con éxito de cambios_bi
+2024-03-22 13:54:19,918 Se va a procesar inventario_bi
+2024-03-22 13:54:24,640 Datos borrados correctamente. Filas afectadas: 0 TRUNCATE TABLE inventario;
+2024-03-22 13:54:25,061 los datos se han insertado correctamente
+2024-03-22 13:54:25,147 Proceso completado para inventario.
+2024-03-22 13:54:25,147 La información se generó con éxito de inventario_bi
+2024-03-22 13:54:25,251 Se va a procesar abonos_bi
+2024-03-22 13:54:25,514 Proceso completado para abonos.
+2024-03-22 13:54:25,515 La información se generó con éxito de abonos_bi
+2024-03-22 13:54:25,645 Se va a procesar cruce_abonos_bi
+2024-03-22 13:54:26,091 Proceso completado para cruce_abonos.
+2024-03-22 13:54:26,092 La información se generó con éxito de cruce_abonos_bi
+2024-03-22 13:54:26,125 Finalizado el procedimiento de ejecución SQL.
+2024-03-22 13:54:26,125 Termina proceso de extracción
+2024-03-22 13:54:26,125 Configurando para la base de datos: buenaventura
+2024-03-22 13:54:36,065 Converted retries value: 1 -> Retry(total=1, connect=None, read=None, redirect=None, status=None)
+2024-03-22 13:54:36,068 Starting new HTTPS connection (1): login.microsoftonline.com:443
+2024-03-22 13:54:36,809 https://login.microsoftonline.com:443 "GET /24eaf79a-73f9-48bd-867a-63bba312d548/v2.0/.well-known/openid-configuration HTTP/1.1" 200 1753
+2024-03-22 13:54:36,810 openid_config = {'token_endpoint': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/token', 'token_endpoint_auth_methods_supported': ['client_secret_post', 'private_key_jwt', 'client_secret_basic'], 'jwks_uri': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/discovery/v2.0/keys', 'response_modes_supported': ['query', 'fragment', 'form_post'], 'subject_types_supported': ['pairwise'], 'id_token_signing_alg_values_supported': ['RS256'], 'response_types_supported': ['code', 'id_token', 'code id_token', 'id_token token'], 'scopes_supported': ['openid', 'profile', 'email', 'offline_access'], 'issuer': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/v2.0', 'request_uri_parameter_supported': False, 'userinfo_endpoint': 'https://graph.microsoft.com/oidc/userinfo', 'authorization_endpoint': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/authorize', 'device_authorization_endpoint': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/devicecode', 'http_logout_supported': True, 'frontchannel_logout_supported': True, 'end_session_endpoint': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/logout', 'claims_supported': ['sub', 'iss', 'cloud_instance_name', 'cloud_instance_host_name', 'cloud_graph_host_name', 'msgraph_host', 'aud', 'exp', 'iat', 'auth_time', 'acr', 'nonce', 'preferred_username', 'name', 'tid', 'ver', 'at_hash', 'c_hash', 'email'], 'kerberos_endpoint': 'https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/kerberos', 'tenant_region_scope': 'SA', 'cloud_instance_name': 'microsoftonline.com', 'cloud_graph_host_name': 'graph.windows.net', 'msgraph_host': 'graph.microsoft.com', 'rbac_url': 'https://pas.windows.net'}
+2024-03-22 13:54:36,810 Broker enabled? None
+2024-03-22 13:54:36,810 Generate or reuse correlation_id: 8f0702eb-729d-422e-a3bc-7d5da453fece
+2024-03-22 13:54:37,019 https://login.microsoftonline.com:443 "GET /common/userrealm/cesar.trujillo@amovil.co?api-version=1.0 HTTP/1.1" 200 162
+2024-03-22 13:54:37,348 https://login.microsoftonline.com:443 "POST /24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/token HTTP/1.1" 200 5644
+2024-03-22 13:54:37,348 event={
+    "client_id": "cb333e97-c2c1-4aa0-a73a-114a70a8a6db",
+    "data": {
+        "claims": null,
+        "password": "********",
+        "scope": [
+            "offline_access",
+            "openid",
+            "https://analysis.windows.net/powerbi/api/.default",
+            "profile"
+        ],
+        "username": "cesar.trujillo@amovil.co"
+    },
+    "environment": "login.microsoftonline.com",
+    "grant_type": "password",
+    "params": null,
+    "response": {
+        "access_token": "********",
+        "client_info": "eyJ1aWQiOiJlMTkxY2M1Ny03OWRjLTQxNjQtODMxZS1jNzM3YmJjYTgyNDciLCJ1dGlkIjoiMjRlYWY3OWEtNzNmOS00OGJkLTg2N2EtNjNiYmEzMTJkNTQ4In0",
+        "expires_in": 4456,
+        "ext_expires_in": 4456,
+        "id_token": "********",
+        "refresh_token": "********",
+        "scope": "https://analysis.windows.net/powerbi/api/App.Read.All https://analysis.windows.net/powerbi/api/Capacity.Read.All https://analysis.windows.net/powerbi/api/Capacity.ReadWrite.All https://analysis.windows.net/powerbi/api/Content.Create https://analysis.windows.net/powerbi/api/Dashboard.Read.All https://analysis.windows.net/powerbi/api/Dashboard.ReadWrite.All https://analysis.windows.net/powerbi/api/Dataflow.Read.All https://analysis.windows.net/powerbi/api/Dataflow.ReadWrite.All https://analysis.windows.net/powerbi/api/Dataset.Read.All https://analysis.windows.net/powerbi/api/Dataset.ReadWrite.All https://analysis.windows.net/powerbi/api/Gateway.Read.All https://analysis.windows.net/powerbi/api/Gateway.ReadWrite.All https://analysis.windows.net/powerbi/api/Report.Read.All https://analysis.windows.net/powerbi/api/Report.ReadWrite.All https://analysis.windows.net/powerbi/api/StorageAccount.Read.All https://analysis.windows.net/powerbi/api/StorageAccount.ReadWrite.All https://analysis.windows.net/powerbi/api/Workspace.Read.All https://analysis.windows.net/powerbi/api/Workspace.ReadWrite.All https://analysis.windows.net/powerbi/api/.default",
+        "token_type": "Bearer"
+    },
+    "scope": [
+        "https://analysis.windows.net/powerbi/api/App.Read.All",
+        "https://analysis.windows.net/powerbi/api/Capacity.Read.All",
+        "https://analysis.windows.net/powerbi/api/Capacity.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Content.Create",
+        "https://analysis.windows.net/powerbi/api/Dashboard.Read.All",
+        "https://analysis.windows.net/powerbi/api/Dashboard.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Dataflow.Read.All",
+        "https://analysis.windows.net/powerbi/api/Dataflow.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Dataset.Read.All",
+        "https://analysis.windows.net/powerbi/api/Dataset.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Gateway.Read.All",
+        "https://analysis.windows.net/powerbi/api/Gateway.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Report.Read.All",
+        "https://analysis.windows.net/powerbi/api/Report.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/StorageAccount.Read.All",
+        "https://analysis.windows.net/powerbi/api/StorageAccount.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/Workspace.Read.All",
+        "https://analysis.windows.net/powerbi/api/Workspace.ReadWrite.All",
+        "https://analysis.windows.net/powerbi/api/.default"
+    ],
+    "token_endpoint": "https://login.microsoftonline.com/24eaf79a-73f9-48bd-867a-63bba312d548/oauth2/v2.0/token"
+}
+2024-03-22 13:54:37,349 Starting new HTTPS connection (1): api.powerbi.com:443
+2024-03-22 13:54:38,154 https://api.powerbi.com:443 "POST /v1.0/myorg/datasets/ac88dd26-7af1-4198-9a49-8406bb2107d5/refreshes HTTP/1.1" 202 0
+2024-03-22 13:54:38,156 Proceso de actualización de Power BI completado
+2024-03-22 13:54:38,156 Fin del proceso

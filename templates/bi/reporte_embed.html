@@ -1,0 +1,119 @@
+{% extends 'black.html' %}
+{% load static %}
+{% block style %}
+<script src="https://microsoft.github.io/PowerBI-JavaScript/demo/node_modules/powerbi-client/dist/powerbi.js"></script>
+{% endblock style %}
+{% block title %}Power Bi{% endblock title %}
+
+{% block window %}
+<div id="reportContainer" style="height: 100vh;"></div>
+
+{% if error_message %}
+<p>{{ error_message }}</p>
+{% else %}
+<script type="text/javascript">
+    $(function () {
+        var reportContainer = $("#reportContainer").get(0);
+
+        // Initialize iframe for embedding report
+        powerbi.bootstrap(reportContainer, { type: "report" });
+
+        var models = window["powerbi-client"].models;
+        var reportLoadConfig = {
+            type: "report",
+            tokenType: models.TokenType.Embed,
+
+            // Enable this setting to remove gray shoulders from embedded report
+            // settings: {
+            //     background: models.BackgroundType.Transparent
+            // }
+        };
+
+        // Obtén la información de incrustación del contexto de la plantilla de Django
+        let embedData = {
+            accessToken: "{{ EMBED_ACCESS_TOKEN }}",
+            reportConfig: [{
+                embedUrl: "{{ EMBED_URL }}",
+                reportId: "{{ REPORT_ID }}"
+            }],
+            tokenExpiry: "{{ TOKEN_EXPIRY }}"
+        };
+
+        reportLoadConfig.accessToken = embedData.accessToken;
+        reportLoadConfig.embedUrl = embedData.reportConfig[0].embedUrl;
+
+        // Use the token expiry to regenerate Embed token for seamless end user experience
+        // Refer https://aka.ms/RefreshEmbedToken
+        tokenExpiry = embedData.tokenExpiry;
+
+        // Embed Power BI report when Access token and Embed URL are available
+        var report = powerbi.embed(reportContainer, reportLoadConfig);
+
+        // Triggers when a report schema is successfully loaded
+        report.on("loaded", function () {
+            console.log("Report load successful")
+        });
+
+        // Triggers when a report is successfully embedded in UI
+        report.on("rendered", function () {
+            console.log("Report render successful")
+        });
+
+        // Clear any other error handler event
+        report.off("error");
+
+        // Below patch of code is for handling errors that occur during embedding
+        report.on("error", function (event) {
+            var errorMsg = event.detail;
+
+            // Use errorMsg variable to log error in any destination of choice
+            console.error(errorMsg);
+            return;
+        });
+    });
+
+</script>
+{% endif %}
+
+{% endblock window %}
+
+
+{% block script %}
+<script>
+    $(document).ready(function () {
+        var databaseName = window.sessionStorage.getItem("database_name");
+
+        if (!databaseName) {
+            console.error("No se encontró información de la base de datos en sessionStorage.");
+        } else {
+            var xhr = new XMLHttpRequest();
+            xhr.responseType = "json";
+            xhr.open("POST", "{% url form_url %}", true);
+            xhr.setRequestHeader("X-CSRFToken", "{% csrf_token %}");
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function () {
+                if (this.readyState === XMLHttpRequest.DONE) {
+                    console.log(this.status, this.responseText);
+                    handleServerResponse(this.status, this.response);
+                }
+            };
+
+            xhr.send("database_select=" + encodeURIComponent(databaseName));
+        }
+    });
+
+    function handleServerResponse(status, response) {
+        if (status === 200) {
+            // Aquí puedes manejar la respuesta del servidor
+            // y realizar acciones según sea necesario.
+        } else if (status === 400) {
+            // Maneja el error en la respuesta del servidor
+            console.error("Error en la solicitud POST:", status, response.error_message);
+        } else {
+            // Maneja otros errores HTTP
+            console.error("Error en la solicitud POST:", status, response);
+        }
+    }
+</script>
+
+{% endblock script %}

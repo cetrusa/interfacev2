@@ -1,0 +1,282 @@
+{% extends 'black.html' %}
+{% load static %}
+
+{% block title %}
+Actualización
+{% endblock title %}
+
+{% block window %}
+{% include 'includes/datepicker_range.html' %}
+<!-- contenido de la pagina -->
+<br>
+<br>
+<div class="card" style="width: 25rem;">
+  <div class="card-header text-center">
+    <h2>Actualizar Base de Datos</h2>
+  </div>
+  <div class="card-body">
+    <label for="date_input">Fecha:</label>
+    <div id="reportrange"
+      style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+      <i class="fa fa-calendar"></i>&nbsp;
+      <span></span> <i class="fa fa-caret-down"></i>
+    </div>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th><label class="lh-1" for="IdtReporteIni">Fecha Inicial:</label></th>
+          <th><label class="lh-1" for="IdtReporteFin">Fecha Final:</label></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th><input type="date" name="IdtReporteIni" id="IdtReporteIni" readonly></th>
+          <th><input type="date" name="IdtReporteFin" id="IdtReporteFin" readonly></th>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <!-- Pestañas -->
+    <ul class="nav nav-tabs" id="actualizacionTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="base-datos-tab" data-bs-toggle="tab" data-bs-target="#base-datos"
+          type="button" role="tab" aria-controls="base-datos" aria-selected="true">Base de Datos</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="powerbi-tab" data-bs-toggle="tab" data-bs-target="#powerbi" type="button"
+          role="tab" aria-controls="powerbi" aria-selected="false">PowerBi</button>
+      </li>
+    </ul>
+    <div class="tab-content" id="actualizacionTabsContent">
+      <div class="tab-pane fade show active" id="base-datos" role="tabpanel" aria-labelledby="base-datos-tab">
+        <!-- Formulario de actualización de Base de Datos -->
+        <p>
+        <form action="{% url 'home_app:actualizacion' %}" method="post" id="FormActualizacion">
+          {% csrf_token %}
+          <span class="card text-center"><button id="submitBtn" type="submit"
+              class="btn btn-primary">Actualizar</button></span>
+        </form>
+        </p>
+      </div>
+      <div class="tab-pane fade" id="powerbi" role="tabpanel" aria-labelledby="powerbi-tab">
+        <!-- Formulario de actualización de PowerBi -->
+        <p>
+        <form action="{% url 'bi_app:actualizacion_bi' %}" method="post" id="myFormPowerBi">
+          {% csrf_token %}
+          <span class="card text-center"><button id="submitBtnPowerBi" type="submit"
+              class="btn btn-primary">Actualizar</button></span>
+        </form>
+        </p>
+        <h6>Recuerda!!! máximo 3 actualizaciones en un día</h6>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Este es el Modal -->
+<div class="modal" id="processingModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Actualizando...</h5>
+      </div>
+      <div class="modal-body">
+        Por favor, espere mientras se procesa su actualización...
+        <br>
+        <hr>
+        <div id="powerBiMessage" style="display: none;">
+          La actualización del Bi tarda debes de tener paciencia...
+          <br>
+          <hr>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- final del modal -->
+{% endblock window %}
+
+{% block script %}
+<script>
+  document.getElementById("processingModal").style.display = "none";
+  var csrf_token = document.getElementsByName("csrfmiddlewaretoken")[0].value;
+
+  // Evento click para Base de Datos
+  document.getElementById("submitBtn").addEventListener("click", function (event) {
+    event.preventDefault();
+    // Check if a task is already in progress
+    if (this.getAttribute("data-submitted") === "true") {
+      alert("Ya hay una tarea en curso.");
+      return;
+    }
+
+    this.setAttribute("data-submitted", "true");
+    document.getElementById("processingModal").style.display = "flex";
+    showMessage("database");
+    submitForm("{% url 'home_app:actualizacion' %}", "FormActualizacion");
+  });
+
+  // Evento click para PowerBi
+  document.getElementById("submitBtnPowerBi").addEventListener("click", function (event) {
+    event.preventDefault();
+    // Check if a task is already in progress
+    if (this.getAttribute("data-submitted") === "true") {
+      alert("Ya hay una tarea en curso.");
+      return;
+    }
+
+    this.setAttribute("data-submitted", "true");
+    document.getElementById("processingModal").style.display = "flex";
+    showMessage("powerbi");
+    submitForm("{% url 'bi_app:actualizacion_bi' %}", "myFormPowerBi");
+  });
+
+  function showMessage(type) {
+    var powerBiMessage = document.getElementById("powerBiMessage");
+    if (type === "powerbi") {
+      powerBiMessage.style.display = "block";
+    } else {
+      powerBiMessage.style.display = "none";
+    }
+  }
+
+
+  function submitForm(url, formId) {
+    // Mostrar modal de procesamiento
+    document.getElementById("processingModal").style.display = "flex";
+    // Preparar datos del formulario
+    var formData = new FormData();
+    var database = window.sessionStorage.getItem("database_name");
+    var IdtReporteIni = document.getElementById("IdtReporteIni").value;
+    var IdtReporteFin = document.getElementById("IdtReporteFin").value;
+    formData.append("database_select", database);
+    formData.append("IdtReporteIni", IdtReporteIni);
+    formData.append("IdtReporteFin", IdtReporteFin);
+
+    // Realizar solicitud AJAX
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          handleServerResponse(xhr.status, response);
+        } catch (e) {
+          alert("Error al procesar la respuesta del servidor.");
+          console.error("Error parsing JSON:", e);
+        }
+      } else {
+        alert("Hubo un error al enviar la solicitud, código de estado: " + xhr.status);
+      }
+    };
+
+    xhr.onerror = function () {
+      alert("Error en la solicitud al servidor.");
+    };
+
+    xhr.send(formData);
+  }
+
+  function checkTaskStatus() {
+    var task_id = window.sessionStorage.getItem("task_id");
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "{% url 'home_app:check_task_status' %}", true);
+    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          handleTaskStatus(xhr.status, response);
+        } catch (e) {
+          alert("Error al procesar la respuesta del servidor.");
+          console.error("Error parsing JSON:", e);
+        }
+      } else {
+        alert("Hubo un error al comprobar el estado de la tarea, código de estado: " + xhr.status);
+      }
+    };
+
+    xhr.onerror = function () {
+      alert("Error en la solicitud al servidor.");
+    };
+
+    xhr.send("task_id=" + encodeURIComponent(task_id));
+  }
+
+
+  // Manejar la respuesta del servidor
+  function handleServerResponse(status, response) {
+    if (status === 200) {
+      if (typeof response === "object" && "success" in response) {
+        if (response.success) {
+          // Almacena actualiza_task_id en sessionStorage
+          window.sessionStorage.setItem("task_id", response.task_id);
+          // Comprueba el estado de la tarea
+          checkTaskStatus();
+        } else {
+          alert("Hubo un error en el proceso: " + response.error_message);
+        }
+      } else {
+        alert("La respuesta del servidor no es un objeto JSON válido");
+      }
+    } else {
+      alert("Hubo un error al enviar la solicitud, código de estado: " + status);
+    }
+  }
+
+  // función para revisar estatus de la tarea
+  function checkTaskStatus() {
+    var task_id = window.sessionStorage.getItem("task_id");
+
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = "text";
+    xhr.open("POST", "{% url 'home_app:check_task_status' %}", true);
+    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onreadystatechange = function () {
+      if (this.readyState === XMLHttpRequest.DONE) {
+        var response = JSON.parse(this.responseText);
+        handleTaskStatus(this.status, response);
+      }
+    };
+    xhr.send("task_id=" + encodeURIComponent(task_id));
+  }
+
+  // Revisar el estado de la tarea
+  function handleTaskStatus(status, response) {
+    if (status === 200) {
+      if (typeof response === "object" && "status" in response) {
+        if (response.status === "finished") {
+          // La tarea se ha completado, podemos mostrar el resultado al usuario
+          document.getElementById("processingModal").style.display = "none";
+          alert("Proceso terminado");
+          reloadForm();
+        } else if (response.status === "failed") {
+          // La tarea falló
+          document.getElementById("processingModal").style.display = "none";
+          alert("Hubo un error en el proceso: " + response.result);
+          reloadForm();
+        } else if (response.status === "queued" || response.status === "deferred" || response.status === "started") {
+          // La tarea aún se está ejecutando, verifica el estado de nuevo después de un tiempo
+          setTimeout(checkTaskStatus, 20000);
+        } else {
+          alert("Estado desconocido de la tarea: " + response.status);
+        }
+      } else {
+        alert("La respuesta del servidor no es un objeto JSON válido");
+      }
+    } else {
+      alert("Hubo un error al comprobar el estado de la tarea, código de estado: " + status);
+    }
+  }
+  // Función para recargar el formulario después de borrar el archivo
+  function reloadForm() {
+    location.reload();
+  }
+</script>
+{% endblock script %}
