@@ -20,10 +20,7 @@ parts/
 sdist/
 var/
 wheels/
-<<<<<<< HEAD
 pip-wheel-metadata/
-=======
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -53,11 +50,6 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-<<<<<<< HEAD
-=======
-cover/
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
-
 # Translations
 *.mo
 *.pot
@@ -79,10 +71,7 @@ instance/
 docs/_build/
 
 # PyBuilder
-<<<<<<< HEAD
-=======
 .pybuilder/
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
 target/
 
 # Jupyter Notebook
@@ -93,14 +82,10 @@ profile_default/
 ipython_config.py
 
 # pyenv
-<<<<<<< HEAD
 .python-version
-=======
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
 # .python-version
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
-
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
@@ -108,9 +93,7 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
-<<<<<<< HEAD
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
-=======
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
@@ -127,7 +110,6 @@ ipython_config.py
 .pdm.toml
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
 __pypackages__/
 
 # Celery stuff
@@ -164,7 +146,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-<<<<<<< HEAD
 secret.json
 log.txt
 staticfiles/
@@ -174,9 +155,7 @@ rsa_key
 rsa_key.pub
 .idea
 mydata.db
-
 mydata.db
-=======
 # pytype static type analyzer
 .pytype/
 
@@ -189,4 +168,3 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
->>>>>>> 158837995adb0259cebbe0c16d9f3bc0eaf88c2c
