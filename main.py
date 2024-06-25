@@ -93,26 +93,40 @@ class Inicio:
             )
         elif __file__:
             self.dir_actual = os.path.dirname(__file__)
-            self.name = str("buenaventura")
-            self.dir_actual = str("puentemes")
+            self.name = str("compi")
+            self.dir_actual = str("puente1dia")
             self.nmDt = self.dir_actual
             
         self.configurar(self.name)
 
     def configurar(self, database_name):
         try:
-            config_basic = ConfigBasic(database_name)
-            self.config = config_basic.config
+            self.config_basic = ConfigBasic(database_name)
+            self.config = self.config_basic.config
             # config_basic.print_configuration()
             # print(self.config.get("txProcedureExtrae", []))
             self.db_connection = DataBaseConnection(config=self.config)
             self.engine_sqlite = self.db_connection.engine_sqlite
             self.engine_mysql_bi = self.db_connection.engine_mysql_bi
             self.engine_mysql_out = self.db_connection.engine_mysql_out
+            self.correo_config()
             # print("Configuraciones preliminares de actualización terminadas")
         except Exception as e:
             logging.error(f"Error al inicializar Actualización: {e}")
             raise
+    
+    def correo_config(self):
+        sql = text("SELECT * FROM powerbi_adm.conf_tipo WHERE nbTipo = '6';")
+        # print(sql)
+        df = self.config_basic.execute_sql_query(sql)
+        # print(df)
+        if not df.empty:
+            # Corrige la asignación aquí
+            self.config["nmUsrCorreo"] = df["nmUsr"].iloc[0]
+            self.config["txPassCorreo"] = df["txPass"].iloc[0]
+        else:
+            # Considera si necesitas manejar el caso de un DataFrame vacío de manera diferente
+            print("No se encontraron configuraciones de Correo.")
 
     def setup_date_config(self):
         date_config = self.fetch_date_config(self.config["nmDt"])
@@ -126,39 +140,20 @@ class Inicio:
     def fetch_date_config(self, nmDt):
         sql = f"SELECT * FROM powerbi_adm.conf_dt WHERE nmDt = '{nmDt}';"
         # print(sql)
-        df = self.execute_sql_query(sql)
+        df = self.config_basic.execute_sql_query(sql)
         if not df.empty:
             # Obtener los valores de IdtReporteIni y IdtReporteFin en una sola consulta
-            txDtIni = str(df["txDtIni"].values[0])
-            txDtFin = str(df["txDtFin"].values[0])
+            txDtIni = df["txDtIni"].iloc[0]
+            txDtFin = df["txDtFin"].iloc[0]
 
             # La consulta SQL para obtener IdtReporteIni y IdtReporteFin
             sql_report_date_ini = text(txDtIni)
             sql_report_date_fin = text(txDtFin)
-            report_date_df_ini = self.execute_sql_query(sql_report_date_ini)
-            report_date_df_fin = self.execute_sql_query(sql_report_date_fin)
+            report_date_df_ini = self.config_basic.execute_sql_query(sql_report_date_ini)
+            report_date_df_fin = self.config_basic.execute_sql_query(sql_report_date_fin)
             if not report_date_df_ini.empty and not report_date_df_fin.empty:
-                self.IdtReporteIni = str(report_date_df_ini["IdtReporteIni"].values[0])
-                self.IdtReporteFin = str(report_date_df_fin["IdtReporteFin"].values[0])
-
-    def execute_sql_query(self, sql_query):
-        try:
-            conectando = con.ConexionMariadb3(
-                get_secret("DB_USERNAME"),
-                get_secret("DB_PASS"),
-                get_secret("DB_HOST"),
-                int(get_secret("DB_PORT")),
-                get_secret("DB_NAME"),
-            )
-            with conectando.connect() as connection:
-                cursor = connection.execution_options(isolation_level="READ COMMITTED")
-                result = pd.read_sql_query(sql=sql_query, con=cursor)
-                if result.empty:
-                    logging.warning(f"Consulta SQL no devolvió datos: {sql_query}")
-                return result
-        except Exception as e:
-            logging.error(f"Error al ejecutar consulta SQL: {sql_query}, Error: {e}")
-            return pd.DataFrame()
+                self.IdtReporteIni = report_date_df_ini["IdtReporteIni"].iloc[0]
+                self.IdtReporteFin = report_date_df_fin["IdtReporteFin"].iloc[0]
 
     def send_email_notification(self, error_message):
         logging.info("Inicia envío de correos")
@@ -166,8 +161,8 @@ class Inicio:
 
         host = "smtp.gmail.com"
         port = 587
-        username = "torredecontrolamovil@gmail.com"
-        password = "dldaqtceiesyybje"
+        username = self.config["nmUsrCorreo"]
+        password = self.config["txPassCorreo"]
 
         from_addr = "torredecontrolamovil@gmail.com"
         to_addr = [
@@ -274,9 +269,9 @@ class Inicio:
         try:
             print(self.name)
             self.fetch_date_config(self.nmDt)
-            # self.extrae_bi()  # Llama al primer proceso
+            self.extrae_bi()  # Llama al primer proceso
             # self.actualiza_bi()  # Llama al segundo proceso
-            self.refresh_excel()  # Llama al tercer proceso
+            # self.refresh_excel()  # Llama al tercer proceso
             logging.info("Fin del proceso")
         except Exception as e:
             error_message = (

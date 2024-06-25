@@ -69,8 +69,8 @@ class CompiUpdate:
 
     def configurar(self, database_name):
         try:
-            config_basic = ConfigBasic(database_name)
-            self.config = config_basic.config
+            self.config_basic = ConfigBasic(database_name)
+            self.config = self.config_basic.config
             # config_basic.print_configuration()
             # print(self.config.get("txProcedureExtrae", []))
             self.db_connection = DataBaseConnection(config=self.config)
@@ -235,16 +235,28 @@ class CompiUpdate:
             workbook.Close(SaveChanges=False)
             excel.Quit()
             logging.info("Excel process completed.")
+            
 
     def send_email(self):
         logging.info("Inicia envío de correos")
         # Indica que vas a usar las variables globales
-        
+        sql = text("SELECT * FROM powerbi_adm.conf_tipo WHERE nbTipo = '6';")
+        # print(sql)
+        df = self.config_basic.execute_sql_query(sql)
+        # print(df)
+        if not df.empty:
+            # Corrige la asignación aquí
+            self.config["nmUsrCorreo"] = df["nmUsr"].iloc[0]
+            self.config["txPassCorreo"] = df["txPass"].iloc[0]
+        else:
+            # Considera si necesitas manejar el caso de un DataFrame vacío de manera diferente
+            print("No se encontraron configuraciones de Correo.")
+            
 
         host = "smtp.gmail.com"
         port = 587
-        username = "torredecontrolamovil@gmail.com"
-        password = "dldaqtceiesyybje"
+        username = self.config["nmUsrCorreo"]
+        password = self.config["txPassCorreo"]
 
         from_addr = "torredecontrolamovil@gmail.com"
         to_addr = [

@@ -71,8 +71,8 @@ class Extrae_Bi:
 
     def configurar(self, database_name):
         try:
-            config_basic = ConfigBasic(database_name)
-            self.config = config_basic.config
+            self.config_basic = ConfigBasic(database_name)
+            self.config = self.config_basic.config
             # config_basic.print_configuration()
             # print(self.config.get("txProcedureExtrae", []))
             self.db_connection = DataBaseConnection(config=self.config)
@@ -94,44 +94,45 @@ class Extrae_Bi:
             # print("Tipo de txProcedureExtrae:", type(txProcedureExtrae))  # Esto debería mostrarte <class 'list'>
             for a in txProcedureExtrae:
                 print("Procesando:", a)
-                with self.engine_mysql_bi.connect() as connectionin:
-                    sql = text("SELECT * FROM powerbi_adm.conf_sql WHERE nbSql = :a")
-                    result = connectionin.execute(sql, {"a": a})
-                    df = pd.DataFrame(result.fetchall(), columns=result.keys())
 
-                    if not df.empty:
-                        self.txTabla = str(df["txTabla"].values[0])
-                        self.nmReporte = str(df["nmReporte"].values[0])
-                        self.nmProcedure_out = str(df["nmProcedure_out"].values[0])
-                        self.nmProcedure_in = str(df["nmProcedure_in"].values[0])
-                        self.txSql = str(df["txSql"].values[0])
-                        self.txSqlExtrae = str(df["txSqlExtrae"].values[0])
-                        # print(self.txTabla)
-                        # print(self.nmReporte)
-                        # print(self.nmProcedure_out)
-                        # print(self.nmProcedure_in)
-                        # print(self.txSql)
-                        # print(self.txSqlExtrae)
+                sql = text(f"SELECT * FROM powerbi_adm.conf_sql WHERE nbSql = {a}")
+                result = self.config_basic.execute_sql_query(sql)
+                df = result
 
-                        logging.info(f"Se va a procesar {self.nmReporte}")
+                if not df.empty:
+                    # Asignar valores a las variables de la instancia
+                    self.txTabla = df["txTabla"].iloc[0]
+                    self.nmReporte = df["nmReporte"].iloc[0]
+                    self.nmProcedure_out = df["nmProcedure_out"].iloc[0]
+                    self.nmProcedure_in = df["nmProcedure_in"].iloc[0]
+                    self.txSql = df["txSql"].iloc[0]
+                    self.txSqlExtrae = df["txSqlExtrae"].iloc[0]
+                    # print(self.txTabla)
+                    # print(self.nmReporte)
+                    # print(self.nmProcedure_out)
+                    # print(self.nmProcedure_in)
+                    # print(self.txSql)
+                    # print(self.txSqlExtrae)
 
-                        try:
-                            self.procedimiento_a_sql()
-                            logging.info(
-                                f"La información se generó con éxito de {self.nmReporte}"
-                            )
-                        except Exception as e:
-                            logging.info(
-                                f"No fue posible extraer la información de {self.nmReporte} por {e}"
-                            )
-                            print(
-                                f"Error al ejecutar procedimiento_a_sql para {self.nmReporte}: {e}"
-                            )
-                    else:
-                        logging.warning(
-                            f"No se encontraron resultados para nbSql = {a}"
+                    logging.info(f"Se va a procesar {self.nmReporte}")
+
+                    try:
+                        self.procedimiento_a_sql()
+                        logging.info(
+                            f"La información se generó con éxito de {self.nmReporte}"
                         )
-                        print(f"No se encontraron resultados para nbSql = {a}")
+                    except Exception as e:
+                        logging.info(
+                            f"No fue posible extraer la información de {self.nmReporte} por {e}"
+                        )
+                        print(
+                            f"Error al ejecutar procedimiento_a_sql para {self.nmReporte}: {e}"
+                        )
+                else:
+                    logging.warning(
+                        f"No se encontraron resultados para nbSql = {a}"
+                    )
+                    print(f"No se encontraron resultados para nbSql = {a}")
             print("Extracción completada con éxito")
             return {"success": True}
         except Exception as e:

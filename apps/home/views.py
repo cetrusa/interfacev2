@@ -241,6 +241,11 @@ class CuboPage(LoginRequiredMixin, BaseView):
         """
         Maneja la solicitud GET, devolviendo la plantilla de la página del cubo de ventas.
         """
+        database_name = request.session.get("database_name")
+        if not database_name:
+            messages.warning(request, "Debe seleccionar una empresa antes de continuar.")
+            return redirect("home_app:panel")
+
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
@@ -317,8 +322,13 @@ class InterfacePage(LoginRequiredMixin, BaseView):
 
     def get(self, request, *args, **kwargs):
         """
-        Maneja la solicitud GET, devolviendo la plantilla de la página de la interface.
+        Maneja la solicitud GET, devolviendo la plantilla de la página del cubo de ventas.
         """
+        database_name = request.session.get("database_name")
+        if not database_name:
+            messages.warning(request, "Debe seleccionar una empresa antes de continuar.")
+            return redirect("home_app:panel")
+
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
@@ -443,8 +453,13 @@ class PlanoPage(LoginRequiredMixin, BaseView):
 
     def get(self, request, *args, **kwargs):
         """
-        Maneja la solicitud GET, devolviendo la plantilla de la página de la interface.
+        Maneja la solicitud GET, devolviendo la plantilla de la página del cubo de ventas.
         """
+        database_name = request.session.get("database_name")
+        if not database_name:
+            messages.warning(request, "Debe seleccionar una empresa antes de continuar.")
+            return redirect("home_app:panel")
+
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
@@ -576,6 +591,11 @@ class ActualizacionPage(LoginRequiredMixin, BaseView):
         """
         Maneja la solicitud GET, devolviendo la plantilla de la página del cubo de ventas.
         """
+        database_name = request.session.get("database_name")
+        if not database_name:
+            messages.warning(request, "Debe seleccionar una empresa antes de continuar.")
+            return redirect("home_app:panel")
+
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
@@ -608,7 +628,16 @@ class PruebaPage(LoginRequiredMixin, BaseView):
             )
 
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        """
+        Maneja la solicitud GET, devolviendo la plantilla de la página del cubo de ventas.
+        """
+        database_name = request.session.get("database_name")
+        if not database_name:
+            messages.warning(request, "Debe seleccionar una empresa antes de continuar.")
+            return redirect("home_app:panel")
+
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

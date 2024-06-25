@@ -144,8 +144,8 @@ class ConfigBasic:
         # print(df)
         if not df.empty:
             # Corrige la asignación aquí
-            self.config["nmUsrCorreo"] = str(df["nmUsr"].values[0])
-            self.config["txPassCorreo"] = str(df["txPass"].values[0])
+            self.config["nmUsrCorreo"] = df["nmUsr"].iloc[0]
+            self.config["txPassCorreo"] = df["txPass"].iloc[0]
         else:
             # Considera si necesitas manejar el caso de un DataFrame vacío de manera diferente
             print("No se encontraron configuraciones de Correo.")
