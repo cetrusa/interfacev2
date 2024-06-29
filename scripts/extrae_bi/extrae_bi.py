@@ -1,15 +1,11 @@
 import os
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import logging
+import ast
+import time
 from scripts.conexion import Conexion as con
 from scripts.config import ConfigBasic
-import ast
-import json
-import ast
-import sqlalchemy
-import time
-from sqlalchemy import text
 
 # Configuración del logging
 logging.basicConfig(
@@ -21,238 +17,155 @@ logging.basicConfig(
 
 
 class DataBaseConnection:
+    """
+    Clase para gestionar las conexiones a las bases de datos MySQL y SQLite.
+
+    Atributos:
+        config (dict): Configuración para las conexiones.
+        engine_mysql_bi (object): Engine de SQLAlchemy para la base de datos BI.
+        engine_mysql_out (object): Engine de SQLAlchemy para la base de datos de salida.
+        engine_sqlite (object): Engine de SQLAlchemy para la base de datos SQLite.
+    """
+
     def __init__(self, config, mysql_engine=None, sqlite_engine=None):
+        """
+        Inicializa una instancia de DataBaseConnection.
+
+        Args:
+            config (dict): Configuración para las conexiones.
+            mysql_engine (object, opcional): Engine de SQLAlchemy para MySQL, si ya existe.
+            sqlite_engine (object, opcional): Engine de SQLAlchemy para SQLite, si ya existe.
+        """
         self.config = config
-        # Asegurarse de que los engines son instancias de conexión válidas y no cadenas
-        self.engine_mysql_bi = (
-            mysql_engine if mysql_engine else self.create_engine_mysql_bi()
-        )
-        self.engine_mysql_out = (
-            mysql_engine if mysql_engine else self.create_engine_mysql_out()
-        )
-        self.engine_sqlite = (
-            sqlite_engine if sqlite_engine else create_engine("sqlite:///mydata.db")
-        )
-        # print(self.engine_sqlite)
+        self.engine_mysql_bi = mysql_engine or self.create_engine_mysql("in")
+        self.engine_mysql_out = mysql_engine or self.create_engine_mysql("out")
+        self.engine_sqlite = sqlite_engine or create_engine("sqlite:///mydata.db")
 
-    def create_engine_mysql_bi(self):
-        # Simplificación en la obtención de los parámetros de configuración
+    def create_engine_mysql(self, db_type):
+        """
+        Crea un engine de SQLAlchemy para una base de datos MySQL.
+
+        Args:
+            db_type (str): Tipo de base de datos ('bi' o 'out').
+
+        Returns:
+            object: Engine de SQLAlchemy para la base de datos especificada.
+        """
         user, password, host, port, database = (
-            self.config.get("nmUsrIn"),
-            self.config.get("txPassIn"),
-            self.config.get("hostServerIn"),
-            self.config.get("portServerIn"),
-            self.config.get("dbBi"),
+            self.config.get(f"nmUsr{db_type.capitalize()}"),
+            self.config.get(f"txPass{db_type.capitalize()}"),
+            self.config.get(f"hostServer{db_type.capitalize()}"),
+            self.config.get(f"portServer{db_type.capitalize()}"),
+            self.config.get(f"db{db_type.capitalize()}"),
         )
-        return con.ConexionMariadb3(
-            str(user), str(password), str(host), int(port), str(database)
-        )
-
-    def create_engine_mysql_out(self):
-        # Simplificación en la obtención de los parámetros de configuración
-        user, password, host, port, database = (
-            self.config.get("nmUsrOut"),
-            self.config.get("txPassOut"),
-            self.config.get("hostServerOut"),
-            self.config.get("portServerOut"),
-            self.config.get("dbSidis"),
-        )
-        return con.ConexionMariadb3(
-            str(user), str(password), str(host), int(port), str(database)
-        )
+        return con.ConexionMariadb3(user, password, host, int(port), database)
 
 
-class Extrae_Bi:
+class ExtraeBI:
+    """
+    Clase para gestionar la extracción de datos de la base de datos BI.
+
+    Atributos:
+        database_name (str): Nombre de la base de datos.
+        IdtReporteIni (int): ID de inicio del reporte.
+        IdtReporteFin (int): ID de fin del reporte.
+        config (dict): Configuración para las conexiones.
+        db_connection (DataBaseConnection): Instancia de conexión a bases de datos.
+    """
+
     def __init__(self, database_name, IdtReporteIni, IdtReporteFin):
+        """
+        Inicializa una instancia de ExtraeBI.
+
+        Args:
+            database_name (str): Nombre de la base de datos.
+            IdtReporteIni (int): ID de inicio del reporte.
+            IdtReporteFin (int): ID de fin del reporte.
+        """
         self.database_name = database_name
         self.IdtReporteIni = IdtReporteIni
         self.IdtReporteFin = IdtReporteFin
         self.configurar(database_name)
 
     def configurar(self, database_name):
+        """
+        Configura la instancia de ExtraeBI.
+
+        Args:
+            database_name (str): Nombre de la base de datos.
+        """
         try:
             self.config_basic = ConfigBasic(database_name)
             self.config = self.config_basic.config
-            # config_basic.print_configuration()
-            # print(self.config.get("txProcedureExtrae", []))
             self.db_connection = DataBaseConnection(config=self.config)
-            self.engine_sqlite = self.db_connection.engine_sqlite
-            self.engine_mysql_bi = self.db_connection.engine_mysql_bi
-            self.engine_mysql_out = self.db_connection.engine_mysql_out
-            print("Configuraciones preliminares de actualización terminadas")
+            logging.info("Configuraciones preliminares de actualización terminadas")
         except Exception as e:
             logging.error(f"Error al inicializar Actualización: {e}")
             raise
 
-    def extractor(self):
-        print("Iniciando extractor")
+    def ejecutar_procedimiento(self, nombre_procedimiento):
+        """
+        Ejecuta un procedimiento almacenado especificado.
+
+        Args:
+            nombre_procedimiento (str): Nombre del procedimiento almacenado.
+        """
         try:
-            txProcedureExtrae = self.config.get("txProcedureExtrae", [])
-            # print("txProcedureExtrae:", txProcedureExtrae)
-            if isinstance(txProcedureExtrae, str):
-                txProcedureExtrae = ast.literal_eval(txProcedureExtrae)
-            # print("Tipo de txProcedureExtrae:", type(txProcedureExtrae))  # Esto debería mostrarte <class 'list'>
-            for a in txProcedureExtrae:
-                print("Procesando:", a)
+            sql = text(
+                f"SELECT * FROM powerbi_adm.conf_sql WHERE nbSql = :nombre_procedimiento"
+            )
+            df = self.config_basic.execute_sql_query(
+                sql, {"nombre_procedimiento": nombre_procedimiento}
+            )
+            if df.empty:
+                logging.warning(
+                    f"No se encontraron resultados para nbSql = {nombre_procedimiento}"
+                )
+                return
 
-                sql = text(f"SELECT * FROM powerbi_adm.conf_sql WHERE nbSql = {a}")
-                result = self.config_basic.execute_sql_query(sql)
-                df = result
-
-                if not df.empty:
-                    # Asignar valores a las variables de la instancia
-                    self.txTabla = df["txTabla"].iloc[0]
-                    self.nmReporte = df["nmReporte"].iloc[0]
-                    self.nmProcedure_out = df["nmProcedure_out"].iloc[0]
-                    self.nmProcedure_in = df["nmProcedure_in"].iloc[0]
-                    self.txSql = df["txSql"].iloc[0]
-                    self.txSqlExtrae = df["txSqlExtrae"].iloc[0]
-                    # print(self.txTabla)
-                    # print(self.nmReporte)
-                    # print(self.nmProcedure_out)
-                    # print(self.nmProcedure_in)
-                    # print(self.txSql)
-                    # print(self.txSqlExtrae)
-
-                    logging.info(f"Se va a procesar {self.nmReporte}")
-
-                    try:
-                        self.procedimiento_a_sql()
-                        logging.info(
-                            f"La información se generó con éxito de {self.nmReporte}"
-                        )
-                    except Exception as e:
-                        logging.info(
-                            f"No fue posible extraer la información de {self.nmReporte} por {e}"
-                        )
-                        print(
-                            f"Error al ejecutar procedimiento_a_sql para {self.nmReporte}: {e}"
-                        )
-                else:
-                    logging.warning(
-                        f"No se encontraron resultados para nbSql = {a}"
-                    )
-                    print(f"No se encontraron resultados para nbSql = {a}")
-            print("Extracción completada con éxito")
-            return {"success": True}
-        except Exception as e:
-            print(f"Error general en el extractor: {e}")
-            return {"success": False, "error": str(e)}
+            self.procesar_fila(df.iloc[0])
         except Exception as e:
             logging.error(
-                f"Error durante la ejecución de la lista de procedimientos con nbSql = {a}: {e}"
+                f"Error al ejecutar procedimiento {nombre_procedimiento}: {e}"
             )
-            return {"success": False, "error": str(e)}
-        finally:
-            logging.info("Finalizado el procedimiento de ejecución SQL.")
 
-    def insertar_sql(self, resultado_out):
-        with self.engine_mysql_bi.connect() as connectionin:
-            cursorbi = connectionin.execution_options(isolation_level="READ COMMITTED")
-            resultado_out.to_sql(
-                name=self.txTabla,
-                con=cursorbi,
-                if_exists="append",
-                index=False,
-                index_label=None,
-            )
-            # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-            return logging.info("los datos se han insertado correctamente")
+    def procesar_fila(self, fila):
+        """
+        Procesa una fila de resultados de la consulta SQL.
 
-    def consulta_sql_out_extrae(self):
-        max_retries = 3  # Define aquí el número máximo de reintentos
-        retry_count = 0
+        Args:
+            fila (pd.Series): Fila de resultados de la consulta SQL.
+        """
+        self.txTabla = fila["txTabla"]
+        self.nmReporte = fila["nmReporte"]
+        self.nmProcedure_out = fila["nmProcedure_out"]
+        self.nmProcedure_in = fila["nmProcedure_in"]
+        self.txSql = fila["txSql"]
+        self.txSqlExtrae = fila["txSqlExtrae"]
 
-        while retry_count < max_retries:
-            try:
-                with self.engine_mysql_out.connect() as connection:
-                    cursorout = connection.execution_options(
-                        isolation_level="READ COMMITTED"
-                    )
-                    # Preparar el llamado al procedimiento almacenado de manera segura
-                    sqlout = text(self.txSqlExtrae)
-                    # print(sqlout)
-                    # Ejecutar el procedimiento almacenado pasando los parámetros de forma segura
-                    resultado = pd.read_sql_query(
-                        sql=sqlout,
-                        con=cursorout,
-                        params={"fi": self.IdtReporteIni, "ff": self.IdtReporteFin},
-                    )
-                    return resultado
-
-            except sqlalchemy.exc.IntegrityError as e:
-                logging.error(f"Error de integridad: {e}")
-                retry_count += 1
-                time.sleep(1)  # Espera antes de reintentar
-
-            except sqlalchemy.exc.ProgrammingError as e:
-                logging.error(f"Error de programación: {e}")
-                retry_count += 1
-                time.sleep(1)  # Espera antes de reintentar
-
-            except Exception as e:
-                logging.error(f"Error desconocido: {e}")
-                retry_count += 1
-                time.sleep(1)  # Espera antes de reintentar
-
-        # Si se alcanza este punto, se agotaron los reintentos sin éxito
-        return None
-    
-    def consulta_sql_bi(self):
         try:
-            # Establecer conexión con la base de datos BI
-            with self.engine_mysql_bi.connect() as connection:
-                # Iniciar una transacción manualmente
-                trans = connection.begin()
-                
-                try:
-                    # Preparar y ejecutar la consulta SQL
-                    # print(f"Revisemos la consulta: {self.txSql}")
-                    sqldelete = text(self.txSql)
-                    result = connection.execute(
-                        sqldelete, {"fi": self.IdtReporteIni, "ff": self.IdtReporteFin}
-                    )
-                    
-                    # Obtener el número de filas afectadas y hacer commit manualmente
-                    rows_deleted = result.rowcount
-                    trans.commit()  # Confirmar los cambios explícitamente
-                    
-                    # Registrar el éxito de la operación
-                    logging.info(f"Datos borrados correctamente. Filas afectadas: {rows_deleted} {self.txSql}")
-                    print(f"Datos borrados correctamente. Filas afectadas: {rows_deleted} {self.txSql}")
-                    
-                    # Devolver el número de filas borradas
-                    return rows_deleted
-                    
-                except:
-                    # En caso de error, hacer rollback de la transacción
-                    trans.rollback()
-                    raise
-                
+            self.procedimiento_a_sql()
+            logging.info(f"La información se generó con éxito de {self.nmReporte}")
         except Exception as e:
-            # Registrar y manejar cualquier excepción
-            logging.error(f"Error al borrar datos: {e}")
-            raise
+            logging.error(
+                f"No fue posible extraer la información de {self.nmReporte} por {e}"
+            )
 
     def procedimiento_a_sql(self):
-        for intento in range(3):  # Intentar la conexión hasta tres veces
+        """
+        Ejecuta el procedimiento almacenado y maneja los reintentos en caso de fallos.
+        """
+        for intento in range(3):
             try:
-                # Verificar directamente si txSqlExtrae tiene un valor adecuado y no es "None"
                 if self.txSqlExtrae and self.txSqlExtrae != "None":
-                    # print(f"Dentro del if, self.txSqlExtrae: {self.txSqlExtrae}")
-                    # print(type(self.txSqlExtrae))
-                    print("estamos ingresando a buscar un resultado")
                     resultado_out = self.consulta_sql_out_extrae()
                     if resultado_out is not None and not resultado_out.empty:
                         self.consulta_sql_bi()
-                        self.insertar_sql(resultado_out=resultado_out)
+                        self.insertar_sql(resultado_out)
                 else:
-                    # Si txSqlExtrae está vacío o es "None", ejecutar consulta_sql_bi directamente
                     self.consulta_sql_bi()
-
                 logging.info(f"Proceso completado para {self.txTabla}.")
-                return  # Sale del bucle después de completar el proceso con éxito
-
+                return
             except Exception as e:
                 logging.error(
                     f"Error en procedimiento_a_sql (Intento {intento + 1}/3): {e}"
@@ -261,10 +174,104 @@ class Extrae_Bi:
                     logging.error(
                         "Se agotaron los intentos. No se pudo ejecutar el procedimiento."
                     )
-                    break  # Sale del bucle si se alcanza el máximo de intentos
                 else:
                     logging.info(
                         f"Reintentando procedimiento (Intento {intento + 1}/3)..."
                     )
-                    time.sleep(5)  # Espera antes de reintentar
+                    time.sleep(5)
 
+    def consulta_sql_out_extrae(self):
+        """
+        Ejecuta una consulta SQL en la base de datos de salida con reintentos.
+
+        Returns:
+            pd.DataFrame: Resultado de la consulta SQL.
+        """
+        max_retries = 3
+        for retry_count in range(max_retries):
+            try:
+                with self.db_connection.engine_mysql_out.connect() as connection:
+                    cursorout = connection.execution_options(
+                        isolation_level="READ COMMITTED"
+                    )
+                    sqlout = text(self.txSqlExtrae)
+                    resultado = pd.read_sql_query(
+                        sql=sqlout,
+                        con=cursorout,
+                        params={"fi": self.IdtReporteIni, "ff": self.IdtReporteFin},
+                    )
+                    return resultado
+            except (
+                sqlalchemy.exc.IntegrityError,
+                sqlalchemy.exc.ProgrammingError,
+            ) as e:
+                logging.error(f"Error en consulta SQL: {e}")
+                time.sleep(1)
+            except Exception as e:
+                logging.error(f"Error desconocido: {e}")
+                time.sleep(1)
+        return None
+
+    def consulta_sql_bi(self):
+        """
+        Ejecuta una consulta SQL en la base de datos BI y borra los datos correspondientes.
+
+        Returns:
+            int: Número de filas borradas.
+        """
+        try:
+            with self.db_connection.engine_mysql_bi.connect() as connection:
+                trans = connection.begin()
+                try:
+                    sqldelete = text(self.txSql)
+                    result = connection.execute(
+                        sqldelete, {"fi": self.IdtReporteIni, "ff": self.IdtReporteFin}
+                    )
+                    rows_deleted = result.rowcount
+                    trans.commit()
+                    logging.info(
+                        f"Datos borrados correctamente. Filas afectadas: {rows_deleted} {self.txSql}"
+                    )
+                    return rows_deleted
+                except:
+                    trans.rollback()
+                    raise
+        except Exception as e:
+            logging.error(f"Error al borrar datos: {e}")
+            raise
+
+    def insertar_sql(self, resultado_out):
+        """
+        Inserta el resultado de una consulta en la base de datos BI.
+
+        Args:
+            resultado_out (pd.DataFrame): Datos a insertar en la base de datos.
+        """
+        with self.db_connection.engine_mysql_bi.connect() as connection:
+            cursorbi = connection.execution_options(isolation_level="READ COMMITTED")
+            resultado_out.to_sql(
+                name=self.txTabla, con=cursorbi, if_exists="append", index=False
+            )
+            logging.info("Los datos se han insertado correctamente")
+
+    def extractor(self):
+        """
+        Inicia el proceso de extracción de datos.
+
+        Returns:
+            dict: Resultado del proceso de extracción.
+        """
+        logging.info("Iniciando extractor")
+        try:
+            txProcedureExtrae = self.config.get("txProcedureExtrae", [])
+            if isinstance(txProcedureExtrae, str):
+                txProcedureExtrae = ast.literal_eval(txProcedureExtrae)
+            for nombre_procedimiento in txProcedureExtrae:
+                self.ejecutar_procedimiento(nombre_procedimiento)
+            logging.info("Extracción completada con éxito")
+            return {"success": True}
+        except Exception as e:
+            logging.error(f"Error general en el extractor: {e}")
+            return {"success": False, "error": str(e)}
+        finally:
+            logging.info("Finalizado el procedimiento de ejecución SQL.")
